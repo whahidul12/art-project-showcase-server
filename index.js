@@ -198,7 +198,42 @@ async function run() {
         //////////////////////////////////////////////////
         //////////////////////////////////////////////////
         //////////////////////////////////////////////////
+        // Add a like
+        app.post("/artwork/:id/like", async (req, res) => {
+            const id = req.params.id;
+            const { userEmail } = req.body; // send current user's email
 
+            try {
+                const artwork = await arts_collections.findOne({ _id: new ObjectId(id) });
+                if (!artwork) return res.status(404).send({ message: "Artwork not found" });
+
+                // Track likes per user to prevent multiple likes by same user
+                let likes = artwork.likes || 0;
+                let likedBy = artwork.likedBy || [];
+
+                if (!likedBy.includes(userEmail)) {
+                    likes += 1;
+                    likedBy.push(userEmail);
+                } else {
+                    likes -= 1;
+                    likedBy = likedBy.filter((email) => email !== userEmail);
+                }
+
+                await arts_collections.updateOne(
+                    { _id: new ObjectId(id) },
+                    { $set: { likes, likedBy } }
+                );
+
+                res.send({ likes, likedBy });
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: "Internal Server Error" });
+            }
+        });
+
+        //////////////////////////////////////////////////
+        //////////////////////////////////////////////////
+        //////////////////////////////////////////////////
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
