@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 const port = process.env.PORT || 3000
 
@@ -48,7 +48,23 @@ async function run() {
             res.send(result)
         })
 
-        app.get("/artwork/:email", async (req, res) => {
+        app.get("/artwork", async (req, res) => {
+            const query = { visibility: "Public" }
+            const cursor = arts_collections.find(query);
+            const arts = await cursor.toArray();
+            if (!arts) return res.status(404).send({ message: "arts not found" });
+            res.send(arts);
+        });
+
+        app.get("/artwork/:id", async (req, res) => {
+            const ID = req.params.id;
+            const query = { _id: new ObjectId(ID) }
+            const art = await arts_collections.findOne(query);
+            if (!art) return res.status(404).send({ message: "art not found" });
+            res.send(art);
+        });
+
+        app.get("/artwork/user/:email", async (req, res) => {
             const email = req.params.email;
             const query = { artistEmail: email }
             const cursor = arts_collections.find(query);
@@ -56,6 +72,51 @@ async function run() {
             if (!arts) return res.status(404).send({ message: "arts not found" });
             res.send(arts);
         });
+
+        app.put("/artwork/:id", async (req, res) => {
+            const id = req.params.id;
+            const updatedArt = req.body;
+            console.log("Incoming update for ID:", id);
+            console.log("Data received:", updatedArt);
+
+            //jibon bara gese amar eta korte jaye
+            delete updatedArt._id;
+            //jibon bara gese amar eta korte jaye
+
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: updatedArt,
+            };
+
+            try {
+                const result = await arts_collections.updateOne(filter, updateDoc);
+                res.send(result);
+            } catch (error) {
+                console.error("Update error:", error);
+                res.send({ message: "Failed to update artwork", error });
+            }
+        });
+
+
+
+        app.delete("/artwork/:id", async (req, res) => {
+            const id = req.params.id;
+
+            try {
+                const query = { _id: new ObjectId(id) };
+                const result = await arts_collections.deleteOne(query);
+
+                if (result.deletedCount === 0) {
+                    return res.status(404).send({ message: "Artwork not found" });
+                }
+
+                res.send({ success: true, message: "Artwork deleted successfully" });
+            } catch (error) {
+                console.error("Delete error:", error);
+                res.send({ message: "Internal Server Error" });
+            }
+        });
+
 
         app.post("/add-artwork", async (req, res) => {
             const new_art = req.body;
