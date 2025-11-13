@@ -126,6 +126,37 @@ async function run() {
             res.send(result)
         })
 
+
+
+        //////////////////////////////////////////////////
+        //////////////////////////////////////////////////
+        //////////////////////////////////////////////////
+        // Add artwork to favorites
+        app.post("/users/:email/favorites", async (req, res) => {
+            const { email } = req.params;
+            const { artworkId } = req.body;
+
+            if (!artworkId) return res.status(400).send({ message: "artworkId is required" });
+
+            try {
+                const result = await arts_users.updateOne(
+                    { email },
+                    { $addToSet: { user_fav_list: new ObjectId(artworkId) } } // prevents duplicates
+                );
+
+                if (result.matchedCount === 0) {
+                    return res.status(404).send({ message: "User not found" });
+                }
+
+                res.send({ success: true, message: "Added to favorites" });
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: "Failed to add favorite", error });
+            }
+        });
+
+
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
