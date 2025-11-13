@@ -176,11 +176,29 @@ async function run() {
             }
         });
 
+        // Get all favorite artworks of a user
+        app.get("/users/:email/favorites", async (req, res) => {
+            const { email } = req.params;
 
+            try {
+                const user = await arts_users.findOne({ email });
+                if (!user) return res.status(404).send({ message: "User not found" });
+
+                const favArtworks = await arts_collections
+                    .find({ _id: { $in: user.user_fav_list || [] } })
+                    .toArray();
+
+                res.send(favArtworks);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: "Failed to fetch favorites", error });
+            }
+        });
 
         //////////////////////////////////////////////////
         //////////////////////////////////////////////////
         //////////////////////////////////////////////////
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
