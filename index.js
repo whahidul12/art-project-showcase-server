@@ -51,14 +51,14 @@ async function run() {
 
         app.get("/artwork", async (req, res) => {
             const query = { visibility: "Public" }
-            const cursor = arts_collections.find(query).sort({ createdAt: 1 });
+            const cursor = arts_collections.find(query).sort({ createdAt: -1 });
             const arts = await cursor.toArray();
             if (!arts) return res.status(404).send({ message: "arts not found" });
             res.send(arts);
         });
         app.get("/artwork/limit", async (req, res) => {
             const query = { visibility: "Public" }
-            const cursor = arts_collections.find(query).sort({ createdAt: 1 }).limit(6);
+            const cursor = arts_collections.find(query).sort({ createdAt: -1 }).limit(6);
             const arts = await cursor.toArray();
             if (!arts) return res.status(404).send({ message: "arts not found" });
             res.send(arts);
