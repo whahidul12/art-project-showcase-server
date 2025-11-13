@@ -48,9 +48,17 @@ async function run() {
             res.send(result)
         })
 
+
         app.get("/artwork", async (req, res) => {
             const query = { visibility: "Public" }
-            const cursor = arts_collections.find(query);
+            const cursor = arts_collections.find(query).sort({ createdAt: 1 });
+            const arts = await cursor.toArray();
+            if (!arts) return res.status(404).send({ message: "arts not found" });
+            res.send(arts);
+        });
+        app.get("/artwork/limit", async (req, res) => {
+            const query = { visibility: "Public" }
+            const cursor = arts_collections.find(query).sort({ createdAt: 1 }).limit(6);
             const arts = await cursor.toArray();
             if (!arts) return res.status(404).send({ message: "arts not found" });
             res.send(arts);
@@ -119,19 +127,24 @@ async function run() {
 
 
         app.post("/add-artwork", async (req, res) => {
-            const new_art = req.body;
-            console.log(new_art);
-            const result = await arts_collections.insertOne(new_art);
-            console.log(`document inserted >>> '_id': ${result.insertedId}`);
-            res.send(result)
-        })
+            try {
+                const new_art = {
+                    ...req.body,
+                    //do not delete this line !!!!
+                    //clinet side has not this data tai add kora lagse
+                    createdAt: new Date(),
+                };
 
+                const result = await arts_collections.insertOne(new_art);
+                console.log(`document inserted >>> '_id': ${result.insertedId}`);
 
+                res.status(201).json(result);
+            } catch (err) {
+                console.error(err);
+                res.status(500).json({ message: "Failed to add artwork" });
+            }
+        });
 
-        //////////////////////////////////////////////////
-        //////////////////////////////////////////////////
-        //////////////////////////////////////////////////
-        // Add artwork to favorites
         app.post("/users/:email/favorites", async (req, res) => {
             const { email } = req.params;
             const { artworkId } = req.body;
@@ -155,7 +168,6 @@ async function run() {
             }
         });
 
-        // Remove artwork from favorites
         app.delete("/users/:email/favorites/:artworkId", async (req, res) => {
             const { email, artworkId } = req.params;
 
@@ -176,7 +188,6 @@ async function run() {
             }
         });
 
-        // Get all favorite artworks of a user
         app.get("/users/:email/favorites", async (req, res) => {
             const { email } = req.params;
 
@@ -195,10 +206,6 @@ async function run() {
             }
         });
 
-        //////////////////////////////////////////////////
-        //////////////////////////////////////////////////
-        //////////////////////////////////////////////////
-        // Add a like
         app.post("/artwork/:id/like", async (req, res) => {
             const id = req.params.id;
             const { userEmail } = req.body; // send current user's email
@@ -231,11 +238,6 @@ async function run() {
             }
         });
 
-        //////////////////////////////////////////////////
-        //////////////////////////////////////////////////
-        //////////////////////////////////////////////////
-
-        // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
