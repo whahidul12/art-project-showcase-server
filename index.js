@@ -155,7 +155,32 @@ async function run() {
             }
         });
 
+        // Remove artwork from favorites
+        app.delete("/users/:email/favorites/:artworkId", async (req, res) => {
+            const { email, artworkId } = req.params;
 
+            try {
+                const result = await arts_users.updateOne(
+                    { email },
+                    { $pull: { user_fav_list: new ObjectId(artworkId) } }
+                );
+
+                if (result.matchedCount === 0) {
+                    return res.status(404).send({ message: "User not found" });
+                }
+
+                res.send({ success: true, message: "Removed from favorites" });
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: "Failed to remove favorite", error });
+            }
+        });
+
+
+
+        //////////////////////////////////////////////////
+        //////////////////////////////////////////////////
+        //////////////////////////////////////////////////
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
